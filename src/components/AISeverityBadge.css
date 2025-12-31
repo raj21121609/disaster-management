@@ -1,0 +1,146 @@
+.ai-severity-badge {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 12px;
+    position: relative;
+    overflow: hidden;
+}
+
+.ai-severity-badge.size-sm {
+    padding: 8px;
+    border-radius: 6px;
+}
+
+.ai-severity-badge.size-lg {
+    padding: 16px;
+    border-radius: 12px;
+}
+
+.badge-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    color: var(--severity-color, #3b82f6);
+}
+
+.ai-severity-badge.size-sm .badge-header {
+    margin-bottom: 4px;
+}
+
+.ai-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #94a3b8;
+}
+
+.ai-severity-badge.size-sm .ai-label {
+    font-size: 8px;
+}
+
+.zap-icon {
+    color: var(--severity-color, #3b82f6);
+    animation: pulse-zap 2s infinite;
+}
+
+@keyframes pulse-zap {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+.badge-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.severity-level {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+
+.ai-severity-badge.size-sm .severity-level {
+    font-size: 12px;
+}
+
+.ai-severity-badge.size-lg .severity-level {
+    font-size: 24px;
+}
+
+.priority-score {
+    display: flex;
+    align-items: baseline;
+    gap: 2px;
+}
+
+.score-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--severity-color, #3b82f6);
+}
+
+.ai-severity-badge.size-sm .score-value {
+    font-size: 16px;
+}
+
+.ai-severity-badge.size-lg .score-value {
+    font-size: 32px;
+}
+
+.score-max {
+    font-size: 12px;
+    color: #64748b;
+}
+
+.ai-severity-badge.size-sm .score-max {
+    font-size: 10px;
+}
+
+.badge-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: var(--severity-color, #3b82f6);
+    transition: width 0.5s ease;
+}
+
+.ai-severity-badge.size-sm .badge-bar {
+    height: 2px;
+}
+
+/* Severity-specific glow effects */
+.ai-severity-badge:has(.severity-critical) {
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.ai-severity-badge:has(.severity-high) {
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.15);
+    border-color: rgba(245, 158, 11, 0.2);
+}
+
+.ai-severity-badge:has(.severity-medium) {
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.2);
+}
+
+.ai-severity-badge:has(.severity-low) {
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
+/* Animation for critical severity */
+.ai-severity-badge:has(.severity-critical) .severity-level {
+    animation: critical-pulse 1.5s infinite;
+}
+
+@keyframes critical-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}

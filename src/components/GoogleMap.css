@@ -1,0 +1,209 @@
+.google-map-container {
+    position: relative;
+    width: 100%;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.google-map {
+    width: 100%;
+    transition: opacity 0.3s ease;
+}
+
+.map-loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-panel);
+    z-index: 10;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border-color);
+    border-top-color: var(--color-emergency);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.map-fallback {
+    position: relative;
+    width: 100%;
+    background: var(--bg-panel);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.map-fallback-content {
+    text-align: center;
+    padding: 2rem;
+    position: relative;
+    z-index: 2;
+}
+
+.map-grid-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+        linear-gradient(rgba(51, 65, 85, 0.3) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(51, 65, 85, 0.3) 1px, transparent 1px);
+    background-size: 40px 40px;
+    z-index: 1;
+}
+
+.map-error-icon {
+    font-size: 48px;
+    margin-bottom: 1rem;
+}
+
+.map-fallback h3 {
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.map-fallback p {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.map-hint {
+    margin-top: 1rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background: var(--bg-card);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-sm);
+}
+
+.demo-markers {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 3;
+    pointer-events: none;
+}
+
+.demo-marker {
+    position: absolute;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    border: 3px solid white;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    cursor: pointer;
+    pointer-events: auto;
+    transition: transform 0.2s ease;
+}
+
+.demo-marker:hover {
+    transform: scale(1.15);
+}
+
+.demo-marker.severity-critical {
+    background: var(--color-emergency);
+    animation: pulse-demo 2s infinite;
+}
+
+.demo-marker.severity-high {
+    background: var(--color-warning);
+}
+
+.demo-marker.severity-medium {
+    background: var(--color-info);
+}
+
+.demo-marker.severity-low {
+    background: var(--color-success);
+}
+
+@keyframes pulse-demo {
+    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+    70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.demo-badge {
+    position: absolute;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.7);
+    color: var(--text-secondary);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+    font-size: 0.75rem;
+    z-index: 10;
+}
+
+@keyframes pulse-marker {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+@keyframes pulse-ring {
+    0% {
+        transform: scale(0.8);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1.5);
+        opacity: 0;
+    }
+}
+
+.custom-marker {
+    position: relative;
+    cursor: pointer;
+}
+
+.custom-marker.selected .marker-container {
+    transform: scale(1.2);
+}
+
+.gm-style-iw {
+    background: transparent !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+}
+
+.gm-style-iw-d {
+    overflow: visible !important;
+}
+
+.gm-style-iw-tc {
+    display: none !important;
+}
+
+.gm-ui-hover-effect {
+    top: 4px !important;
+    right: 4px !important;
+}
+
+.gm-ui-hover-effect > span {
+    background-color: white !important;
+}
