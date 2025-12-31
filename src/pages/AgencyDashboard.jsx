@@ -15,6 +15,8 @@ import {
     assignResource,
     IncidentStatus
 } from '../services/incidentService';
+import { getSystemStatus } from '../services/overloadDetectionService';
+import OverloadZoneAlert from '../components/OverloadZoneAlert';
 import './AgencyDashboard.css';
 
 const AgencyDashboard = () => {
@@ -25,6 +27,9 @@ const AgencyDashboard = () => {
     const [filterStatus, setFilterStatus] = useState('all');
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [showAIPanel, setShowAIPanel] = useState(true);
+    const [overloadZones, setOverloadZones] = useState([]);
+    const [systemStatus, setSystemStatus] = useState('normal');
+    const [showOverloadDetails, setShowOverloadDetails] = useState(false);
 
     const { currentUser, getIdToken } = useAuth();
     const { addNotification } = useNotifications();
@@ -51,6 +56,30 @@ const AgencyDashboard = () => {
             unsubscribe();
         };
     }, []);
+
+    useEffect(() => {
+        if (!incidents || incidents.length === 0) {
+            setSystemStatus('normal');
+            setOverloadZones([]);
+            return;
+        }
+
+        // Simulate deployed resources based on busy status
+        const deployedResources = {
+            ambulance: resources.filter(r => r.type === 'ambulance' && r.status === 'busy').length,
+            fire: resources.filter(r => r.type === 'fire' && r.status === 'busy').length,
+            police: resources.filter(r => r.type === 'police' && r.status === 'busy').length,
+        };
+
+        const statusReport = getSystemStatus(incidents, deployedResources);
+
+        setSystemStatus(statusReport.status);
+        setOverloadZones(statusReport.overloadZones);
+
+        if (statusReport.status === 'critical' || statusReport.status === 'elevated') {
+            setShowOverloadDetails(true);
+        }
+    }, [incidents]);
 
     const filteredIncidents = incidents.filter(inc => {
         if (filterStatus === 'all') return true;
@@ -139,11 +168,18 @@ const AgencyDashboard = () => {
                 <div className="header-left">
                     <h1 className="text-2xl font-bold">Agency Command Center</h1>
                     <div className="system-status">
-                        <span className="pulsing-dot bg-success"></span>
-                        System Operational
+                        <span className={`pulsing-dot bg-${systemStatus === 'critical' ? 'emergency' : systemStatus === 'elevated' ? 'warning' : 'success'}`}></span>
+                        System {systemStatus.charAt(0).toUpperCase() + systemStatus.slice(1)}
                     </div>
                 </div>
                 <div className="header-right">
+                    {overloadZones.length > 0 && (
+                        <OverloadZoneAlert
+                            zones={overloadZones}
+                            showDetails={showOverloadDetails}
+                            onToggleDetails={() => setShowOverloadDetails(!showOverloadDetails)}
+                        />
+                    )}
                     <Button variant="ghost" size="sm" icon={RefreshCw} onClick={() => window.location.reload()}>
                         Refresh
                     </Button>
@@ -281,6 +317,7 @@ const AgencyDashboard = () => {
                         center={{ lat: 40.7128, lng: -74.0060 }}
                         zoom={11}
                         height="100%"
+                        overloadZones={overloadZones}
                     />
                 </div>
 

@@ -77,6 +77,12 @@ const MapController = ({ center, selectedIncidentId, incidents }) => {
     return null;
 };
 
+const zoneSeverityColors = {
+    critical: { fill: '#ef4444', stroke: '#ef4444' },
+    high: { fill: '#f97316', stroke: '#f97316' },
+    elevated: { fill: '#f59e0b', stroke: '#f59e0b' }
+};
+
 const MapView = ({
     incidents = [],
     onIncidentClick,
@@ -85,6 +91,7 @@ const MapView = ({
     showUserLocation = true,
     userLocation = null,
     selectedIncidentId = null,
+    overloadZones = [],
     height = '100%'
 }) => {
     const [mapReady, setMapReady] = useState(false);
@@ -139,6 +146,27 @@ const MapView = ({
                         />
                     </>
                 )}
+
+                {overloadZones.map(zone => (
+                    <Circle
+                        key={zone.id}
+                        center={[zone.center.lat, zone.center.lng]}
+                        radius={zone.radius * 1609.34} // Convert miles to meters
+                        pathOptions={{
+                            color: zoneSeverityColors[zone.severity]?.stroke || '#f59e0b',
+                            fillColor: zoneSeverityColors[zone.severity]?.fill || '#f59e0b',
+                            fillOpacity: 0.2 + (zone.incidentCount / 10) * 0.2
+                        }}
+                    >
+                        <Popup>
+                            <div className="overload-popup">
+                                <h4>Overload Zone</h4>
+                                <p>{zone.incidentCount} incidents in this area.</p>
+                                <p>Severity: {zone.severity}</p>
+                            </div>
+                        </Popup>
+                    </Circle>
+                ))}
 
                 {incidents.map(incident => {
                     const coords = getIncidentCoords(incident);

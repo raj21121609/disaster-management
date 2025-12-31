@@ -20,10 +20,10 @@ export const AuthProvider = ({ children }) => {
 
     const signup = async (email, password, role = 'citizen', displayName = '') => {
         if (!auth) throw new Error("Firebase not configured. Setup .env file.");
-        
+
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
-        
+
         if (db) {
             const userDoc = {
                 uid: user.uid,
@@ -35,47 +35,47 @@ export const AuthProvider = ({ children }) => {
                 isOnline: true,
                 location: null
             };
-            
+
             await setDoc(doc(db, 'users', user.uid), userDoc);
             setUserRole(role);
             setUserProfile(userDoc);
         }
-        
+
         return userCredential;
     };
 
     const login = async (email, password) => {
         if (!auth) throw new Error("Firebase not configured. Setup .env file.");
-        
+
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        
+
         if (db) {
             const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
             if (userDoc.exists()) {
                 const userData = userDoc.data();
                 setUserRole(userData.role);
                 setUserProfile(userData);
-                
+
                 await setDoc(doc(db, 'users', userCredential.user.uid), {
                     isOnline: true,
                     lastLoginAt: serverTimestamp()
                 }, { merge: true });
             }
         }
-        
+
         return userCredential;
     };
 
     const logout = async () => {
         if (!auth) return Promise.resolve();
-        
+
         if (db && currentUser) {
             await setDoc(doc(db, 'users', currentUser.uid), {
                 isOnline: false,
                 lastSeenAt: serverTimestamp()
             }, { merge: true });
         }
-        
+
         setUserRole(null);
         setUserProfile(null);
         return signOut(auth);
@@ -88,7 +88,7 @@ export const AuthProvider = ({ children }) => {
 
     const updateUserLocation = async (latitude, longitude) => {
         if (!db || !currentUser) return;
-        
+
         await setDoc(doc(db, 'users', currentUser.uid), {
             location: { latitude, longitude },
             locationUpdatedAt: serverTimestamp()
@@ -97,7 +97,7 @@ export const AuthProvider = ({ children }) => {
 
     const updateVolunteerStatus = async (isAvailable) => {
         if (!db || !currentUser) return;
-        
+
         await setDoc(doc(db, 'users', currentUser.uid), {
             isAvailable: isAvailable,
             updatedAt: serverTimestamp()
@@ -105,14 +105,24 @@ export const AuthProvider = ({ children }) => {
     };
 
     useEffect(() => {
+        console.log('AuthContext: Initializing...', { authExists: !!auth });
         if (!auth) {
+            console.log('AuthContext: No Auth, disabling loading');
             setLoading(false);
             return;
         }
-        
+
+        // Safety timeout in case Firebase hangs
+        const timeoutId = setTimeout(() => {
+            console.warn('AuthContext: Auth listener timed out, forcing load');
+            setLoading(false);
+        }, 3000);
+
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            clearTimeout(timeoutId);
+            console.log('AuthContext: Auth State Changed', user ? 'User Logged In' : 'No User');
             setCurrentUser(user);
-            
+
             if (user && db) {
                 try {
                     const userDoc = await getDoc(doc(db, 'users', user.uid));
@@ -128,11 +138,14 @@ export const AuthProvider = ({ children }) => {
                 setUserRole(null);
                 setUserProfile(null);
             }
-            
+
             setLoading(false);
         });
 
-        return unsubscribe;
+        return () => {
+            clearTimeout(timeoutId);
+            unsubscribe();
+        };
     }, []);
 
     const value = {

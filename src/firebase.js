@@ -17,11 +17,13 @@ let auth = null;
 let db = null;
 
 // Only initialize if config is present
+console.log('Firebase Config Check:', { hasApiKey: !!firebaseConfig.apiKey });
 if (firebaseConfig.apiKey) {
     try {
         app = initializeApp(firebaseConfig);
         auth = getAuth(app);
         db = getFirestore(app);
+        console.log('Firebase Initialized Successfully');
     } catch (e) {
         console.error("Firebase Initialization Failed:", e);
     }

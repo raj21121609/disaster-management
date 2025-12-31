@@ -1,23 +1,16 @@
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
+import api from './apiService';
 
-export const predictResources = async (incident, idToken = null) => {
+export const predictResources = async (incident) => {
     try {
-        const response = await fetch(`${BACKEND_URL}/predict-resources`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                ...(idToken && { 'Authorization': `Bearer ${idToken}` })
-            },
-            body: JSON.stringify({
-                type: incident.type,
-                severity: incident.severity,
-                description: incident.description,
-                location: incident.address
-            })
+        const response = await api.post('/predict-resources', {
+            type: incident.type,
+            severity: incident.severity,
+            description: incident.description,
+            location: incident.address
         });
-
-        if (response.ok) {
-            return await response.json();
+        
+        if (response.data) {
+            return response.data;
         }
     } catch (error) {
         console.warn('Backend prediction unavailable, using local prediction');

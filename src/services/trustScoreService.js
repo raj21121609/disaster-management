@@ -4,6 +4,8 @@
  * Prevents fake reports and builds accountability
  */
 
+import api from './apiService';
+
 // Trust score factors and weights
 const TRUST_FACTORS = {
     // Positive factors
@@ -15,7 +17,7 @@ const TRUST_FACTORS = {
     accountAge: { weight: 0.5, max: 30 },                // Days since account creation
     profileComplete: { weight: 10, max: 10 },            // Complete profile
     verifiedIdentity: { weight: 25, max: 25 },           // ID verified
-    
+
     // Negative factors
     falseReports: { weight: -20, max: -100 },            // Fake/false reports
     abandonedMissions: { weight: -15, max: -75 },        // Missions dropped after accepting
@@ -180,14 +182,14 @@ export const calculateTrustScore = (userData) => {
 
     // Calculate reliability percentage
     const totalMissions = missionsCompleted + abandonedMissions;
-    const reliability = totalMissions > 0 
-        ? Math.round((missionsCompleted / totalMissions) * 100) 
+    const reliability = totalMissions > 0
+        ? Math.round((missionsCompleted / totalMissions) * 100)
         : 100;
 
     // Calculate response rate
     const totalResponses = onTimeResponses + lateResponses;
-    const responseRate = totalResponses > 0 
-        ? Math.round((onTimeResponses / totalResponses) * 100) 
+    const responseRate = totalResponses > 0
+        ? Math.round((onTimeResponses / totalResponses) * 100)
         : 100;
 
     return {
@@ -199,8 +201,8 @@ export const calculateTrustScore = (userData) => {
             responseRate,
             totalMissions: missionsCompleted,
             totalReports: incidentsReported,
-            verificationRate: incidentsReported > 0 
-                ? Math.round((incidentsVerified / incidentsReported) * 100) 
+            verificationRate: incidentsReported > 0
+                ? Math.round((incidentsVerified / incidentsReported) * 100)
                 : 0
         },
         recommendations: generateTrustRecommendations(userData, score)
@@ -288,25 +290,29 @@ export const canPerformAction = (score, action) => {
  * Mock function to get user trust data (would connect to Firestore in production)
  */
 export const getUserTrustData = async (userId) => {
-    // In production, fetch from Firestore
-    // For demo, return mock data based on userId hash
-    const hash = userId ? userId.charCodeAt(0) % 100 : 50;
-    
-    return {
-        incidentsReported: Math.floor(hash / 10),
-        incidentsVerified: Math.floor(hash / 15),
-        missionsCompleted: Math.floor(hash / 8),
-        onTimeResponses: Math.floor(hash / 10),
-        positiveFeedback: Math.floor(hash / 20),
-        accountAgeDays: hash + 10,
-        profileComplete: hash > 40,
-        verifiedIdentity: hash > 60,
-        falseReports: hash < 20 ? 1 : 0,
-        abandonedMissions: hash < 30 ? 1 : 0,
-        lateResponses: hash < 40 ? 2 : 0,
-        negativeFeedback: hash < 25 ? 1 : 0,
-        reportedByOthers: 0
-    };
+    try {
+        const response = await api.get(`/users/${userId}/trust`);
+        return response.data;
+    } catch (error) {
+        console.error('Failed to fetch user trust data:', error);
+        // Fallback to minimal default data structure if API fails, or rethrow depending on requirement
+        // For now, returning a safe default to prevent crash
+        return {
+            incidentsReported: 0,
+            incidentsVerified: 0,
+            missionsCompleted: 0,
+            onTimeResponses: 0,
+            positiveFeedback: 0,
+            accountAgeDays: 0,
+            profileComplete: false,
+            verifiedIdentity: false,
+            falseReports: 0,
+            abandonedMissions: 0,
+            lateResponses: 0,
+            negativeFeedback: 0,
+            reportedByOthers: 0
+        };
+    }
 };
 
 export default {

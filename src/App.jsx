@@ -13,7 +13,7 @@ import './index.css';
 
 const AppContent = () => {
   const [currentPage, setCurrentPage] = useState('landing');
-  const { isAuthenticated, userRole, currentUser } = useAuth();
+  const { isAuthenticated, userRole } = useAuth(); // Destructuring should work now
 
   useEffect(() => {
     if (isAuthenticated && currentPage === 'auth') {

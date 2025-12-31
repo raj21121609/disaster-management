@@ -4,6 +4,8 @@
  * Alerts higher authority when incidents remain unaddressed
  */
 
+import api from './apiService';
+
 // Escalation levels and thresholds
 const ESCALATION_LEVELS = [
     {
@@ -87,7 +89,7 @@ export const calculateEscalationLevel = (incident) => {
     const severity = incident.severity || 'medium';
     const status = incident.status || 'reported';
     const createdAt = incident.createdAt;
-    
+
     // Resolved/cancelled incidents don't escalate
     if (status === 'resolved' || status === 'cancelled') {
         return {
@@ -96,15 +98,15 @@ export const calculateEscalationLevel = (incident) => {
             reason: 'Incident resolved'
         };
     }
-    
+
     // Calculate time elapsed
     const now = Date.now();
     const created = createdAt?.toDate?.() || createdAt?.seconds * 1000 || Date.now();
     const elapsedMinutes = Math.floor((now - created) / 60000);
-    
+
     // Get timing thresholds for this severity
     const timings = ESCALATION_TIMINGS[severity] || ESCALATION_TIMINGS.medium;
-    
+
     // Determine current level
     let currentLevel = 1;
     for (let level = 5; level >= 1; level--) {
@@ -113,17 +115,17 @@ export const calculateEscalationLevel = (incident) => {
             break;
         }
     }
-    
+
     // Check if status affects escalation
     const statusPauses = {
         'assigned': 1,       // Pauses at level 1-2
         'on_the_way': 2,     // Pauses at level 2-3
         'in_progress': 3     // Pauses at level 3-4
     };
-    
+
     const pauseLevel = statusPauses[status] || 0;
     const escalationPaused = pauseLevel > 0 && currentLevel <= pauseLevel + 1;
-    
+
     return {
         currentLevel,
         escalationPaused,
@@ -131,8 +133,8 @@ export const calculateEscalationLevel = (incident) => {
         severity,
         timings,
         pauseLevel: pauseLevel > 0 ? pauseLevel : null,
-        reason: escalationPaused 
-            ? `Response in progress (${status.replace('_', ' ')})` 
+        reason: escalationPaused
+            ? `Response in progress (${status.replace('_', ' ')})`
             : null
     };
 };
@@ -141,16 +143,16 @@ export const calculateEscalationLevel = (incident) => {
  * Get escalation timeline for an incident
  */
 export const getEscalationTimeline = (incident) => {
-    const { currentLevel, escalationPaused, elapsedMinutes, severity, timings, pauseLevel, reason } = 
+    const { currentLevel, escalationPaused, elapsedMinutes, severity, timings, pauseLevel, reason } =
         calculateEscalationLevel(incident);
-    
+
     const timeline = ESCALATION_LEVELS.map(level => {
         const threshold = timings[level.level];
         const isReached = elapsedMinutes >= threshold;
         const isCurrent = level.level === currentLevel;
         const isPaused = escalationPaused && level.level === currentLevel;
         const timeRemaining = threshold - elapsedMinutes;
-        
+
         return {
             ...level,
             threshold,
@@ -162,7 +164,7 @@ export const getEscalationTimeline = (incident) => {
             status: isPaused ? 'paused' : isReached ? 'reached' : 'pending'
         };
     });
-    
+
     // Calculate next escalation
     const nextLevel = timeline.find(l => !l.isReached);
     const nextEscalation = nextLevel ? {
@@ -171,7 +173,7 @@ export const getEscalationTimeline = (incident) => {
         inMinutes: nextLevel.timeRemaining,
         at: new Date(Date.now() + nextLevel.timeRemaining * 60000)
     } : null;
-    
+
     return {
         timeline,
         currentLevel,
@@ -195,11 +197,11 @@ const calculateUrgencyScore = (level, elapsed, severity) => {
         medium: 1.0,
         low: 0.7
     };
-    
+
     let score = level * 20; // Base: 20 per level
     score += Math.min(elapsed, 30); // Bonus for time elapsed
     score *= severityMultiplier[severity] || 1;
-    
+
     return Math.min(100, Math.round(score));
 };
 
@@ -235,7 +237,7 @@ export const getEscalationActions = (level) => {
             'Government liaison alerted'
         ]
     };
-    
+
     return actions[level] || [];
 };
 
@@ -244,14 +246,14 @@ export const getEscalationActions = (level) => {
  */
 export const needsImmediateAttention = (incident) => {
     const { currentLevel, escalationPaused, elapsedMinutes } = calculateEscalationLevel(incident);
-    
+
     // Critical at level 3+ or any at level 4+
     if (incident.severity === 'critical' && currentLevel >= 3) return true;
     if (currentLevel >= 4) return true;
-    
+
     // Long unattended incidents
     if (!escalationPaused && elapsedMinutes > 20) return true;
-    
+
     return false;
 };
 
@@ -260,10 +262,10 @@ export const needsImmediateAttention = (incident) => {
  */
 export const getEscalationAlerts = (incidents) => {
     const alerts = [];
-    
+
     incidents.forEach(incident => {
         const escalation = calculateEscalationLevel(incident);
-        
+
         if (escalation.currentLevel >= 3 && !escalation.escalationPaused) {
             alerts.push({
                 incidentId: incident.id,
@@ -277,8 +279,16 @@ export const getEscalationAlerts = (incidents) => {
             });
         }
     });
-    
+
     return alerts.sort((a, b) => b.level - a.level);
+};
+
+export const syncEscalationStatus = async (incidentId, escalationData) => {
+    try {
+        await api.post(`/incidents/${incidentId}/escalate`, escalationData);
+    } catch (error) {
+        console.error('Failed to sync escalation status:', error);
+    }
 };
 
 export default {
@@ -288,5 +298,6 @@ export default {
     getEscalationTimeline,
     getEscalationActions,
     needsImmediateAttention,
-    getEscalationAlerts
+    getEscalationAlerts,
+    syncEscalationStatus
 };
