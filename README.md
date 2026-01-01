@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🚨 CRISIS.ONE
 
 ## Integrated Community Resource & Crisis Response Platform
@@ -413,3 +414,6 @@ This project is designed to be:
 - ✅ Easy to demo
 
 **Good luck with your hackathon! 🚀**
+=======
+# disaster-management
+>>>>>>> fe60ee5f330944400d0c8e7cd0b88401bba4a171
