@@ -1,0 +1,137 @@
+/* BackgroundPaths - Animated SVG background */
+.background-paths {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+}
+
+.background-paths-svg {
+    width: 100%;
+    height: 100%;
+    opacity: 0.6;
+}
+
+/* Animated path stroke */
+.path-animated {
+    stroke-dasharray: 200;
+    stroke-dashoffset: 200;
+    animation: pathDraw ease-in-out infinite alternate;
+}
+
+@keyframes pathDraw {
+    0% {
+        stroke-dashoffset: 200;
+        opacity: 0.3;
+    }
+
+    50% {
+        opacity: 0.8;
+    }
+
+    100% {
+        stroke-dashoffset: 0;
+        opacity: 0.3;
+    }
+}
+
+/* Floating glow orbs */
+.background-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: 0.15;
+    animation: orbFloat ease-in-out infinite;
+}
+
+.orb-1 {
+    width: 400px;
+    height: 400px;
+    background: var(--color-emergency, #ef4444);
+    top: 10%;
+    left: 10%;
+    animation-duration: 15s;
+}
+
+.orb-2 {
+    width: 300px;
+    height: 300px;
+    background: var(--color-info, #3b82f6);
+    top: 60%;
+    right: 15%;
+    animation-duration: 20s;
+    animation-delay: -5s;
+}
+
+.orb-3 {
+    width: 350px;
+    height: 350px;
+    background: var(--color-warning, #f59e0b);
+    bottom: 20%;
+    left: 40%;
+    animation-duration: 18s;
+    animation-delay: -10s;
+}
+
+@keyframes orbFloat {
+
+    0%,
+    100% {
+        transform: translate(0, 0) scale(1);
+    }
+
+    25% {
+        transform: translate(30px, -20px) scale(1.1);
+    }
+
+    50% {
+        transform: translate(-20px, 30px) scale(0.9);
+    }
+
+    75% {
+        transform: translate(-30px, -15px) scale(1.05);
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .background-paths-svg {
+        opacity: 0.4;
+    }
+
+    .background-orb {
+        opacity: 0.1;
+    }
+
+    .orb-1 {
+        width: 250px;
+        height: 250px;
+    }
+
+    .orb-2 {
+        width: 200px;
+        height: 200px;
+    }
+
+    .orb-3 {
+        width: 220px;
+        height: 220px;
+    }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+    .path-animated {
+        animation: none;
+        stroke-dasharray: none;
+        stroke-dashoffset: 0;
+    }
+
+    .background-orb {
+        animation: none;
+    }
+}

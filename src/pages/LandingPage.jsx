@@ -1,133 +1,149 @@
 import React from 'react';
-import { Shield, Radio, Users, Activity, MapPin, ArrowRight } from 'lucide-react';
-import Button from '../components/Button';
-import Card from '../components/Card';
-import './LandingPage.css';
+import { AlertTriangle, MapPin, Users, Shield, Clock, Phone, Activity, ChevronRight } from 'lucide-react';
+import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import { Badge } from '../components/ui/Badge';
+import { cn } from '../lib/utils';
+// import './LandingPage.css'; // REMOVED
 
 const LandingPage = ({ onNavigate }) => {
     return (
-        <div className="landing-page">
+        <div className="flex min-h-screen flex-col bg-slate-950 font-sans text-slate-50 selection:bg-red-900/50">
+
             {/* Hero Section */}
-            <section className="hero-section">
-                <div className="container hero-container">
-                    <div className="hero-content">
-                        <div className="hero-badge">
-                            <span className="live-dot"></span>
-                            Live Emergency Response Network
-                        </div>
-                        <h1 className="hero-title">
-                            Real-Time Crisis Response.<br />
-                            <span className="text-secondary-highlight">One Platform. One Map.</span>
+            <section className="relative overflow-hidden pt-24 pb-16 md:pt-32 md:pb-24 lg:pt-40 lg:pb-32">
+                {/* Background Grid */}
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-20" />
+
+                <div className="container relative z-10 mx-auto px-4 md:px-6">
+                    <div className="mx-auto max-w-4xl text-center">
+                        <Badge variant="critical" className="mb-6 animate-pulse-weak">
+                            <AlertTriangle className="mr-1 h-3 w-3" />
+                            EMERGENCY SYSTEM ONLINE
+                        </Badge>
+
+                        <h1 className="mb-6 text-4xl font-extrabold tracking-tight leading-none text-white md:text-6xl lg:text-7xl">
+                            REAL-TIME <span className="bg-gradient-to-r from-red-500 to-amber-500 bg-clip-text text-transparent">CRISIS</span> COORDINATION
                         </h1>
-                        <p className="hero-subtitle">
-                            Connects citizens, volunteers, and agencies in a unified dashboard for rapid emergency coordination and resource allocation.
+
+                        <p className="mx-auto mb-8 max-w-2xl text-lg text-slate-400 md:text-xl">
+                            Advanced command center logic for disaster management.
+                            Report incidents, deploy assets, and coordinate response in real-time.
                         </p>
-                        <div className="hero-actions">
+
+                        <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
                             <Button
-                                variant="primary"
+                                variant="critical"
                                 size="lg"
-                                icon={Radio}
+                                className="w-full sm:w-auto text-lg h-14"
                                 onClick={() => onNavigate('report')}
-                                className="animate-pulse-red"
                             >
-                                Report an Emergency
+                                <Phone className="mr-2 h-5 w-5" />
+                                INITIATE SOS REPORT
                             </Button>
                             <Button
-                                variant="secondary"
+                                variant="outline"
                                 size="lg"
-                                icon={Activity}
+                                className="w-full sm:w-auto text-lg h-14 border-slate-700 bg-slate-900/50 hover:bg-slate-800"
                                 onClick={() => onNavigate('dashboard')}
                             >
-                                View Live Dashboard
+                                <MapPin className="mr-2 h-5 w-5" />
+                                VIEW LIVE MAP
                             </Button>
                         </div>
-
-                        <div className="trust-indicators">
-                            <div className="trust-item">
-                                <Shield size={20} className="text-success" />
-                                <span>Verified by Agencies</span>
-                            </div>
-                            <div className="trust-item">
-                                <Users size={20} className="text-info" />
-                                <span>50k+ Volunteers</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="hero-visual">
-                        {/* Abstract Map Visualization */}
-                        <div className="map-visual-container">
-                            <div className="map-grid"></div>
-                            <div className="map-marker marker-1"></div>
-                            <div className="map-marker marker-2"></div>
-                            <div className="map-marker marker-3"></div>
-                            <div className="map-radar"></div>
-
-                            <div className="visual-card card-1">
-                                <div className="visual-card-icon bg-emergency">
-                                    <Radio size={16} color="white" />
-                                </div>
-                                <div>
-                                    <div className="text-xs text-muted">New Incident</div>
-                                    <div className="text-sm font-bold">Fire Reported</div>
-                                </div>
-                            </div>
-
-                            <div className="visual-card card-2">
-                                <div className="visual-card-icon bg-success">
-                                    <Users size={16} color="white" />
-                                </div>
-                                <div>
-                                    <div className="text-xs text-muted">Response</div>
-                                    <div className="text-sm font-bold">Unit Dispatched</div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </section>
 
-            {/* Features Grid */}
-            <section className="features-section">
-                <div className="container">
-                    <div className="section-header">
-                        <h2 className="section-title">Integrated Response System</h2>
-                        <p className="section-subtitle">Designed for high-stress environments where every second counts.</p>
-                    </div>
-
-                    <div className="features-grid">
-                        <Card className="feature-card">
-                            <div className="feature-icon-wrapper text-emergency">
-                                <MapPin size={32} />
+            {/* Live Stats Ticker */}
+            <div className="border-y border-slate-800 bg-slate-900/50 backdrop-blur">
+                <div className="container mx-auto px-4 py-4 md:px-6">
+                    <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-900/20 md:h-12 md:w-12">
+                                <Activity className="h-5 w-5 text-green-500 md:h-6 md:w-6" />
                             </div>
-                            <h3 className="feature-title">Live Geolocation</h3>
-                            <p className="feature-desc">
-                                Pinpoint accuracy for incident reporting with real-time GPS tracking and dynamic map overlays.
-                            </p>
-                        </Card>
-
-                        <Card className="feature-card">
-                            <div className="feature-icon-wrapper text-warning">
-                                <Users size={32} />
+                            <div>
+                                <p className="text-xs font-medium uppercase text-slate-500">System Status</p>
+                                <p className="font-mono text-lg font-bold text-green-500">OPTIMAL</p>
                             </div>
-                            <h3 className="feature-title">Volunteer Mobilization</h3>
-                            <p className="feature-desc">
-                                Nearby qualified volunteers receive instant alerts to provide first-aid before ambulances arrive.
-                            </p>
-                        </Card>
-
-                        <Card className="feature-card">
-                            <div className="feature-icon-wrapper text-info">
-                                <Activity size={32} />
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-900/20 md:h-12 md:w-12">
+                                <Clock className="h-5 w-5 text-blue-500 md:h-6 md:w-6" />
                             </div>
-                            <h3 className="feature-title">Agency Command</h3>
-                            <p className="feature-desc">
-                                Uniified data stream for police, fire, and medical dispatchers to coordinate resources efficiently.
-                            </p>
-                        </Card>
+                            <div>
+                                <p className="text-xs font-medium uppercase text-slate-500">Avg. Response</p>
+                                <p className="font-mono text-lg font-bold text-slate-200 text-shadow-glow">&lt; 3 MIN</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-900/20 md:h-12 md:w-12">
+                                <AlertTriangle className="h-5 w-5 text-red-500 md:h-6 md:w-6" />
+                            </div>
+                            <div>
+                                <p className="text-xs font-medium uppercase text-slate-500">Active Incidents</p>
+                                <p className="font-mono text-lg font-bold text-red-500">42</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-900/20 md:h-12 md:w-12">
+                                <Users className="h-5 w-5 text-amber-500 md:h-6 md:w-6" />
+                            </div>
+                            <div>
+                                <p className="text-xs font-medium uppercase text-slate-500">Volunteers</p>
+                                <p className="font-mono text-lg font-bold text-amber-500">1,240</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </div>
+
+            {/* Features (Grid) */}
+            <section className="container mx-auto px-4 py-16 md:px-6 md:py-24">
+                <div className="mb-12 text-center">
+                    <h2 className="text-2xl font-bold tracking-tight text-white md:text-4xl">TACTICAL CAPABILITIES</h2>
+                    <p className="mt-4 text-slate-400">Integrated suite for emergency management</p>
+                </div>
+
+                <div className="grid gap-6 md:grid-cols-3">
+                    <Card className="border-slate-800 bg-slate-900/40 p-6 backdrop-blur transition-all hover:bg-slate-900/60 hover:shadow-lg hover:shadow-blue-900/20 group">
+                        <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-slate-800 text-slate-400 font-mono text-sm group-hover:bg-blue-600 group-hover:text-white transition-colors">01</div>
+                        <h3 className="mb-2 text-xl font-bold text-slate-100">Rapid Reporting</h3>
+                        <p className="text-slate-400">Offline-first submission with AI severity estimation. Works even when infrastructure fails.</p>
+                    </Card>
+                    <Card className="border-slate-800 bg-slate-900/40 p-6 backdrop-blur transition-all hover:bg-slate-900/60 hover:shadow-lg hover:shadow-blue-900/20 group">
+                        <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-slate-800 text-slate-400 font-mono text-sm group-hover:bg-blue-600 group-hover:text-white transition-colors">02</div>
+                        <h3 className="mb-2 text-xl font-bold text-slate-100">Live Coordination</h3>
+                        <p className="text-slate-400">Real-time geospatial tracking of incidents and volunteer assets on a unified tactical map.</p>
+                    </Card>
+                    <Card className="border-slate-800 bg-slate-900/40 p-6 backdrop-blur transition-all hover:bg-slate-900/60 hover:shadow-lg hover:shadow-blue-900/20 group">
+                        <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-slate-800 text-slate-400 font-mono text-sm group-hover:bg-blue-600 group-hover:text-white transition-colors">03</div>
+                        <h3 className="mb-2 text-xl font-bold text-slate-100">Secure Network</h3>
+                        <p className="text-slate-400">Encrypted communication channels for agencies and verified volunteers.</p>
+                    </Card>
+                </div>
             </section>
+
+            {/* CTA Bottom */}
+            <section className="border-t border-slate-800 bg-slate-900 py-16">
+                <div className="container mx-auto max-w-2xl px-4 text-center">
+                    <Shield className="mx-auto mb-6 h-12 w-12 text-slate-500" />
+                    <h2 className="text-3xl font-bold tracking-tight text-white mb-4">Join the Network</h2>
+                    <p className="mb-8 text-slate-400">
+                        Become a verified responder or register your agency to access the command center.
+                    </p>
+                    <Button
+                        size="lg"
+                        variant="default" // Blue
+                        onClick={() => onNavigate('auth')}
+                        className="min-w-[200px]"
+                    >
+                        Access Terminal <ChevronRight className="ml-2 h-4 w-4" />
+                    </Button>
+                </div>
+            </section>
+
         </div>
     );
 };

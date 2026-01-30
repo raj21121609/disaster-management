@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Circle } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import './MapView.css';
+// import './MapView.css'; // REMOVED
 
 const severityColors = {
     critical: '#ef4444',
@@ -22,31 +22,39 @@ const typeEmojis = {
 };
 
 const createCustomIcon = (incident) => {
-    const color = incident.status === 'resolved' 
-        ? severityColors.resolved 
+    const color = incident.status === 'resolved'
+        ? severityColors.resolved
         : severityColors[incident.severity] || severityColors.medium;
-    
+
     const emoji = typeEmojis[incident.type] || typeEmojis.other;
-    
+
+    // Using Tailwind classes directly in HTML string
     return L.divIcon({
-        className: 'custom-marker',
+        className: 'custom-marker bg-transparent border-none', // Override Leaflet default
         html: `
-            <div class="marker-pin" style="background-color: ${color};">
-                <span class="marker-emoji">${emoji}</span>
+            <div class="relative flex h-10 w-10 items-center justify-center">
+                <div class="absolute inset-0 rounded-full opacity-20 animate-ping" style="background-color: ${color}"></div>
+                <div class="relative flex h-8 w-8 items-center justify-center rounded-full border-2 border-white shadow-lg" style="background-color: ${color}; border-color: ${color}">
+                    <span class="text-base leading-none select-none filter drop-shadow-sm">${emoji}</span>
+                </div>
+                ${incident.severity === 'critical' ? `
+                    <div class="absolute -inset-2 rounded-full border-2 opacity-50 animate-pulse" style="border-color: ${color}"></div>
+                ` : ''}
             </div>
-            ${incident.severity === 'critical' ? '<div class="pulse-ring" style="border-color: ' + color + ';"></div>' : ''}
         `,
         iconSize: [40, 40],
-        iconAnchor: [20, 40],
-        popupAnchor: [0, -40]
+        iconAnchor: [20, 20],
+        popupAnchor: [0, -24]
     });
 };
 
 const userIcon = L.divIcon({
-    className: 'user-marker',
+    className: 'user-marker bg-transparent border-none',
     html: `
-        <div class="user-dot"></div>
-        <div class="user-pulse"></div>
+        <div class="relative flex h-5 w-5 items-center justify-center">
+            <div class="absolute inset-0 animate-ping rounded-full bg-blue-400 opacity-75"></div>
+            <div class="relative h-3 w-3 rounded-full border-2 border-white bg-blue-500 shadow-sm"></div>
+        </div>
     `,
     iconSize: [20, 20],
     iconAnchor: [10, 10]
@@ -54,7 +62,7 @@ const userIcon = L.divIcon({
 
 const MapController = ({ center, selectedIncidentId, incidents }) => {
     const map = useMap();
-    
+
     useEffect(() => {
         if (selectedIncidentId) {
             const incident = incidents.find(i => i.id === selectedIncidentId);
@@ -92,7 +100,8 @@ const MapView = ({
     userLocation = null,
     selectedIncidentId = null,
     overloadZones = [],
-    height = '100%'
+    height = '100%',
+    className
 }) => {
     const [mapReady, setMapReady] = useState(false);
 
@@ -105,33 +114,35 @@ const MapView = ({
     };
 
     return (
-        <div className="map-view-container" style={{ height }}>
+        <div className={`relative w-full overflow-hidden bg-slate-900 ${className || ''}`} style={{ height }}>
             <MapContainer
                 center={[center.lat, center.lng]}
                 zoom={zoom}
-                style={{ height: '100%', width: '100%' }}
+                style={{ height: '100%', width: '100%', background: '#0f172a' }} // slate-900 matches
                 whenReady={() => setMapReady(true)}
+                className="z-0"
             >
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    // Dark theme map tiles
                     url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                 />
-                
-                <MapController 
-                    center={center} 
+
+                <MapController
+                    center={center}
                     selectedIncidentId={selectedIncidentId}
                     incidents={incidents}
                 />
 
                 {showUserLocation && userLocation && (
                     <>
-                        <Marker 
-                            position={[userLocation.lat, userLocation.lng]} 
+                        <Marker
+                            position={[userLocation.lat, userLocation.lng]}
                             icon={userIcon}
                         >
-                            <Popup>
-                                <div className="popup-content">
-                                    <strong>Your Location</strong>
+                            <Popup className="leaflet-popup-dark">
+                                <div className="text-sm font-semibold text-slate-900">
+                                    Your Location
                                 </div>
                             </Popup>
                         </Marker>
@@ -158,11 +169,11 @@ const MapView = ({
                             fillOpacity: 0.2 + (zone.incidentCount / 10) * 0.2
                         }}
                     >
-                        <Popup>
-                            <div className="overload-popup">
-                                <h4>Overload Zone</h4>
-                                <p>{zone.incidentCount} incidents in this area.</p>
-                                <p>Severity: {zone.severity}</p>
+                        <Popup className="leaflet-popup-dark">
+                            <div className="p-1">
+                                <h4 className="font-bold text-slate-800">Overload Zone</h4>
+                                <p className="text-xs text-slate-600">{zone.incidentCount} incidents</p>
+                                <p className="text-xs font-semibold text-amber-600 capitalize">Severity: {zone.severity}</p>
                             </div>
                         </Popup>
                     </Circle>
@@ -181,29 +192,28 @@ const MapView = ({
                                 click: () => onIncidentClick && onIncidentClick(incident)
                             }}
                         >
-                            <Popup>
-                                <div className="incident-popup">
-                                    <div className="popup-header">
-                                        <span 
-                                            className="popup-badge"
+                            <Popup className="leaflet-popup-dark">
+                                <div className="min-w-[200px] p-1">
+                                    <div className="mb-2 flex items-center justify-between border-b pb-1">
+                                        <span
+                                            className="rounded px-1.5 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider"
                                             style={{ backgroundColor: severityColors[incident.severity] }}
                                         >
                                             {incident.severity}
                                         </span>
-                                        <span className="popup-type">{typeEmojis[incident.type]}</span>
+                                        <span className="text-lg">{typeEmojis[incident.type]}</span>
                                     </div>
-                                    <h3 className="popup-title">
+                                    <h3 className="mb-1 font-bold text-slate-900 leading-tight">
                                         {incident.type.charAt(0).toUpperCase() + incident.type.slice(1)} Emergency
                                     </h3>
-                                    <p className="popup-address">{incident.address || 'Location pending...'}</p>
+                                    <p className="mb-2 text-xs text-slate-600">{incident.address || 'Location pending...'}</p>
                                     {incident.description && (
-                                        <p className="popup-desc">
-                                            {incident.description.substring(0, 80)}
-                                            {incident.description.length > 80 ? '...' : ''}
+                                        <p className="mb-2 text-xs text-slate-500 line-clamp-2 italic">
+                                            "{incident.description}"
                                         </p>
                                     )}
-                                    <div className="popup-status">
-                                        Status: {incident.status?.replace('_', ' ')}
+                                    <div className="flex items-center gap-1 text-[10px] font-medium text-slate-400">
+                                        Status: <span className="uppercase text-slate-600">{incident.status?.replace('_', ' ')}</span>
                                     </div>
                                 </div>
                             </Popup>

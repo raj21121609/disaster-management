@@ -1,0 +1,335 @@
+/* Pricing Section */
+.pricing-section {
+    padding: 4rem 1.5rem;
+    background: var(--bg-app);
+    min-height: 100vh;
+}
+
+.pricing-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.pricing-header-section {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.pricing-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    letter-spacing: -0.025em;
+}
+
+@media (min-width: 768px) {
+    .pricing-title {
+        font-size: 3rem;
+    }
+}
+
+.pricing-subtitle {
+    font-size: 1.125rem;
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Toggle Switch */
+.pricing-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--bg-panel);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+}
+
+.pricing-toggle .label {
+    transition: color 0.2s ease;
+}
+
+.pricing-toggle .label-active {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.pricing-discount-badge {
+    display: inline-block;
+    background: var(--color-success);
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.15rem 0.4rem;
+    border-radius: 9999px;
+    margin-left: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Pricing Grid */
+.pricing-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+}
+
+@media (min-width: 768px) {
+    .pricing-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
+        align-items: stretch;
+    }
+}
+
+/* Pricing Card */
+.pricing-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+    animation: slideUp 0.5s ease forwards;
+    opacity: 0;
+}
+
+.pricing-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.pricing-card-popular {
+    border-color: var(--color-emergency);
+    box-shadow: 0 0 30px rgba(239, 68, 68, 0.15);
+}
+
+.pricing-card-popular:hover {
+    box-shadow: 0 0 40px rgba(239, 68, 68, 0.25), 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Badge */
+.pricing-badge {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: var(--color-emergency);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.4rem 0.8rem;
+    border-radius: 9999px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+/* Header */
+.pricing-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.pricing-icon {
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--color-emergency);
+    border-radius: var(--radius-md);
+    margin: 0 auto 1rem;
+}
+
+.pricing-card-popular .pricing-icon {
+    background: var(--color-emergency);
+    color: white;
+}
+
+.pricing-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.pricing-description {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+/* Price Display */
+.pricing-price {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.pricing-currency {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.animated-number {
+    font-size: 3.5rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.025em;
+    line-height: 1;
+}
+
+.pricing-period {
+    font-size: 1rem;
+    color: var(--text-muted);
+}
+
+/* Savings Badge */
+.pricing-savings {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    color: var(--color-success);
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-bottom: 1.5rem;
+}
+
+/* Features List */
+.pricing-features {
+    list-style: none;
+    margin: 0;
+    padding: 1.5rem 0;
+    border-top: 1px solid var(--border-color);
+    flex: 1;
+}
+
+.pricing-feature {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.pricing-feature:last-child {
+    margin-bottom: 0;
+}
+
+.pricing-check {
+    flex-shrink: 0;
+    color: var(--color-success);
+    margin-top: 2px;
+}
+
+/* CTA Button */
+.pricing-cta {
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    border: 2px solid var(--border-color);
+    background: transparent;
+    color: var(--text-primary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: auto;
+}
+
+.pricing-cta:hover {
+    background: var(--bg-card);
+    border-color: var(--text-muted);
+}
+
+.pricing-cta-primary {
+    background: var(--color-emergency);
+    border-color: var(--color-emergency);
+    color: white;
+}
+
+.pricing-cta-primary:hover {
+    background: var(--color-emergency-hover);
+    border-color: var(--color-emergency-hover);
+    box-shadow: var(--glow-emergency);
+}
+
+/* Footer */
+.pricing-footer {
+    text-align: center;
+}
+
+.pricing-guarantee {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+.pricing-guarantee svg {
+    color: var(--color-success);
+}
+
+/* Confetti Particle (JS-controlled) */
+.confetti-particle {
+    animation: confettiFall 1s ease-out forwards;
+}
+
+@keyframes confettiFall {
+    to {
+        opacity: 0;
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 767px) {
+    .pricing-section {
+        padding: 2rem 1rem;
+    }
+
+    .pricing-title {
+        font-size: 1.75rem;
+    }
+
+    .pricing-subtitle {
+        font-size: 1rem;
+    }
+
+    .pricing-card {
+        padding: 1.5rem;
+    }
+
+    .animated-number {
+        font-size: 2.5rem;
+    }
+}

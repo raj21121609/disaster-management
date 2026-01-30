@@ -4,15 +4,44 @@ import {
     doc,
     query,
     limit,
+    addDoc,
+    serverTimestamp,
+    updateDoc,
+    arrayUnion,
+    arrayRemove,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import api from './apiService';
 
-// Mock implementation or real one
-export const getNearbyIncidents = async (location, radius) => {
-    // Placeholder logic
-    console.log('Fetching nearby incidents', location, radius);
-    return [];
+// Calculate distance between two coordinates using Haversine formula
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 3959; // Earth's radius in miles
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+};
+
+// Filter incidents by distance from user location
+export const getNearbyIncidents = (incidents, userLat, userLng, radiusMiles = 15) => {
+    if (!incidents || !userLat || !userLng) return incidents || [];
+
+    return incidents
+        .map(incident => {
+            const incLat = incident.location?.latitude || incident.latitude;
+            const incLng = incident.location?.longitude || incident.longitude;
+
+            if (!incLat || !incLng) return { ...incident, distance: Infinity };
+
+            const distance = calculateDistance(userLat, userLng, incLat, incLng);
+            return { ...incident, distance };
+        })
+        .filter(incident => incident.distance <= radiusMiles)
+        .sort((a, b) => a.distance - b.distance);
 };
 
 const INCIDENTS_COLLECTION = 'incidents';
@@ -43,28 +72,101 @@ export const SeverityLevel = {
 };
 
 export const createIncident = async (incidentData) => {
-    const response = await api.post('/incidents', incidentData);
-    return response.data;
+    if (!db) {
+        throw new Error('Firebase not configured');
+    }
+
+    const newIncident = {
+        type: incidentData.type,
+        severity: incidentData.severity || 'medium',
+        description: incidentData.description || '',
+        location: {
+            latitude: incidentData.latitude,
+            longitude: incidentData.longitude,
+            address: incidentData.address || ''
+        },
+        contactPhone: incidentData.contactPhone || '',
+        status: 'reported',
+        createdAt: serverTimestamp(),
+        createdBy: incidentData.userId || 'anonymous',
+        priorityScore: incidentData.priorityScore || 0,
+        aiSeverity: incidentData.aiSeverity || incidentData.severity || 'medium',
+        assignedVolunteers: [],
+        assignedResources: [],
+        updates: []
+    };
+
+    const docRef = await addDoc(collection(db, INCIDENTS_COLLECTION), newIncident);
+    console.log('[NEW INCIDENT] Created:', docRef.id);
+
+    return {
+        success: true,
+        id: docRef.id,
+        ...newIncident,
+        createdAt: new Date().toISOString()
+    };
 };
 
 export const updateIncidentStatus = async (incidentId, status, userId) => {
-    const response = await api.put(`/incidents/${incidentId}/status`, { status, userId });
-    return response.data;
+    if (!db) {
+        throw new Error('Firebase not configured');
+    }
+
+    const updateData = {
+        status: status,
+        updatedAt: serverTimestamp(),
+        updatedBy: userId || 'anonymous'
+    };
+
+    if (status === 'resolved') {
+        updateData.resolvedAt = serverTimestamp();
+        updateData.resolvedBy = userId || 'anonymous';
+    }
+
+    await updateDoc(doc(db, INCIDENTS_COLLECTION, incidentId), updateData);
+    return { success: true, incidentId, status };
 };
 
 export const assignVolunteer = async (incidentId, volunteerId) => {
-    const response = await api.post(`/incidents/${incidentId}/volunteers`, { volunteerId });
-    return response.data;
+    if (!db) {
+        throw new Error('Firebase not configured');
+    }
+
+    await updateDoc(doc(db, INCIDENTS_COLLECTION, incidentId), {
+        assignedVolunteers: arrayUnion(volunteerId),
+        status: 'assigned',
+        updatedAt: serverTimestamp()
+    });
+    return { success: true, incidentId, volunteerId };
 };
 
 export const unassignVolunteer = async (incidentId, volunteerId) => {
-    const response = await api.delete(`/incidents/${incidentId}/volunteers/${volunteerId}`);
-    return response.data;
+    if (!db) {
+        throw new Error('Firebase not configured');
+    }
+
+    await updateDoc(doc(db, INCIDENTS_COLLECTION, incidentId), {
+        assignedVolunteers: arrayRemove(volunteerId),
+        updatedAt: serverTimestamp()
+    });
+    return { success: true, incidentId, volunteerId };
 };
 
 export const assignResource = async (incidentId, resourceId, resourceType) => {
-    const response = await api.post(`/incidents/${incidentId}/resources`, { resourceId, resourceType });
-    return response.data;
+    if (!db) {
+        throw new Error('Firebase not configured');
+    }
+
+    await updateDoc(doc(db, INCIDENTS_COLLECTION, incidentId), {
+        status: 'assigned',
+        assignedResources: arrayUnion({
+            resourceId,
+            resourceType: resourceType || 'unknown',
+            assignedAt: new Date().toISOString()
+        }),
+        updatedAt: serverTimestamp()
+    });
+    return { success: true, incidentId, resourceId, resourceType };
 };
 
 export const getIncident = async (incidentId) => {

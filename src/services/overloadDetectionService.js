@@ -154,7 +154,8 @@ export const detectOverloadZones = (incidents, deployedResources = {}) => {
             const requiredResources = calculateRequiredResources(cluster.incidents);
 
             // Get area name (from first incident's address)
-            const areaName = cluster.incidents[0]?.address?.split(',')[0] || 'Unknown Area';
+            const areaName = cluster.incidents[0]?.location?.address?.split(',')[0] ||
+                cluster.incidents[0]?.address?.split(',')[0] || 'Unknown Area';
 
             overloadZones.push({
                 id: cluster.id,

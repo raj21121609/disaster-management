@@ -1,0 +1,107 @@
+/* Offline Indicator Styles */
+
+.offline-indicator {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9998;
+    padding: 0.75rem 1.25rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+.offline-indicator.offline {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    color: white;
+    animation: pulse-offline 2s ease-in-out infinite;
+}
+
+.offline-indicator.online {
+    background: var(--bg-panel, #1e293b);
+    color: var(--text-primary, #f8fafc);
+    border: 1px solid var(--border-color, #334155);
+}
+
+@keyframes pulse-offline {
+
+    0%,
+    100% {
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+    }
+
+    50% {
+        box-shadow: 0 4px 20px rgba(220, 38, 38, 0.5);
+    }
+}
+
+.offline-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.offline-icon {
+    flex-shrink: 0;
+}
+
+.offline-icon.spinning {
+    animation: spin 1s linear infinite;
+}
+
+.offline-icon.success {
+    color: var(--color-success, #10b981);
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.offline-text {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.pending-badge {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.15rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.sync-btn {
+    background: var(--color-info, #3b82f6);
+    color: white;
+    border: none;
+    padding: 0.35rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.sync-btn:hover {
+    background: #2563eb;
+}
+
+/* Mobile adjustments */
+@media (max-width: 480px) {
+    .offline-indicator {
+        left: 1rem;
+        right: 1rem;
+        transform: none;
+        border-radius: var(--radius-md, 8px);
+    }
+}

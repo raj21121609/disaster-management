@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import AlertBanner from './components/AlertBanner';
+import OfflineIndicator from './components/OfflineIndicator';
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
 import DashboardPage from './pages/DashboardPage';
@@ -9,11 +10,27 @@ import VolunteerDashboard from './pages/VolunteerDashboard';
 import AgencyDashboard from './pages/AgencyDashboard';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
+import { initSyncService } from './services/offlineSyncService';
+import { initDB } from './services/offlineIncidentStore';
 import './index.css';
 
 const AppContent = () => {
   const [currentPage, setCurrentPage] = useState('landing');
-  const { isAuthenticated, userRole } = useAuth(); // Destructuring should work now
+  const { isAuthenticated, userRole } = useAuth();
+
+  // Initialize offline services on mount
+  useEffect(() => {
+    const initOffline = async () => {
+      try {
+        await initDB();
+        initSyncService();
+        console.log('[App] Offline services initialized');
+      } catch (error) {
+        console.error('[App] Failed to init offline services:', error);
+      }
+    };
+    initOffline();
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated && currentPage === 'auth') {
@@ -56,6 +73,7 @@ const AppContent = () => {
       <main>
         {renderPage()}
       </main>
+      <OfflineIndicator />
     </div>
   );
 };
@@ -71,3 +89,4 @@ function App() {
 }
 
 export default App;
+

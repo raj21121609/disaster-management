@@ -5,7 +5,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-sm);
-    z-index: var(--z-toast);
+    z-index: 9999;
     max-width: 400px;
     width: 100%;
     pointer-events: none;
@@ -35,6 +35,7 @@
         transform: translateX(100%);
         opacity: 0;
     }
+
     to {
         transform: translateX(0);
         opacity: 1;
@@ -46,6 +47,7 @@
         transform: translateX(0);
         opacity: 1;
     }
+
     to {
         transform: translateX(100%);
         opacity: 0;
@@ -140,14 +142,30 @@
     animation: toast-progress linear forwards;
 }
 
-.toast-success .toast-progress { color: var(--color-success); }
-.toast-error .toast-progress { color: var(--color-emergency); }
-.toast-warning .toast-progress { color: var(--color-warning); }
-.toast-info .toast-progress { color: var(--color-info); }
+.toast-success .toast-progress {
+    color: var(--color-success);
+}
+
+.toast-error .toast-progress {
+    color: var(--color-emergency);
+}
+
+.toast-warning .toast-progress {
+    color: var(--color-warning);
+}
+
+.toast-info .toast-progress {
+    color: var(--color-info);
+}
 
 @keyframes toast-progress {
-    from { width: 100%; }
-    to { width: 0%; }
+    from {
+        width: 100%;
+    }
+
+    to {
+        width: 0%;
+    }
 }
 
 @media (max-width: 480px) {

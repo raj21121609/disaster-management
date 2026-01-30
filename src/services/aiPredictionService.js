@@ -8,7 +8,7 @@ export const predictResources = async (incident) => {
             description: incident.description,
             location: incident.address
         });
-        
+
         if (response.data) {
             return response.data;
         }
@@ -22,7 +22,7 @@ export const predictResources = async (incident) => {
 export const localResourcePrediction = (incident) => {
     const { type, severity, description = '' } = incident;
     const text = description.toLowerCase();
-    
+
     const predictions = {
         resources: [],
         estimatedResponseTime: 0,
@@ -231,7 +231,7 @@ export const localResourcePrediction = (incident) => {
 
 const getRequiredSupplies = (type, severity) => {
     const supplies = [];
-    
+
     switch (type) {
         case 'medical':
             supplies.push({ name: 'First Aid Kit', quantity: 2 });
@@ -265,7 +265,7 @@ const getRequiredSupplies = (type, severity) => {
             supplies.push({ name: 'First Aid Kit', quantity: 1 });
             supplies.push({ name: 'Flashlight', quantity: 2 });
     }
-    
+
     return supplies;
 };
 
@@ -291,8 +291,9 @@ export const analyzeIncidentTrends = (incidents) => {
             hourCount[hour]++;
         }
 
-        if (incident.address) {
-            const area = incident.address.split(',')[0];
+        const address = incident.location?.address || incident.address;
+        if (address) {
+            const area = address.split(',')[0];
             locationClusters[area] = (locationClusters[area] || 0) + 1;
         }
     });
@@ -308,7 +309,7 @@ export const analyzeIncidentTrends = (incidents) => {
         .slice(0, 5);
 
     const predictions = [];
-    
+
     if (typeCount['medical'] > typeCount['fire']) {
         predictions.push({
             type: 'resource',

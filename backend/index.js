@@ -49,11 +49,14 @@ const authenticateToken = async (req, res, next) => {
         return res.status(401).json({ error: 'No token provided' });
     }
 
+    // Allow anonymous and mock tokens without verification
+    if (token === 'anonymous' || token === 'mock-token') {
+        req.user = { uid: 'anonymous', email: 'anonymous@example.com' };
+        return next();
+    }
+
+    // If Firebase Auth is not configured, allow any token
     if (!auth) {
-        if (token === 'mock-token' || token === 'anonymous') {
-            req.user = { uid: 'mock-user', email: 'mock@example.com' };
-            return next();
-        }
         req.user = { uid: 'anonymous', email: 'anonymous@example.com' };
         return next();
     }
@@ -64,6 +67,11 @@ const authenticateToken = async (req, res, next) => {
         next();
     } catch (error) {
         console.error('Token verification failed:', error.message);
+        // Allow through with anonymous user on verification failure (for development)
+        if (process.env.NODE_ENV === 'development') {
+            req.user = { uid: 'anonymous', email: 'anonymous@example.com' };
+            return next();
+        }
         return res.status(403).json({ error: 'Invalid token' });
     }
 };
@@ -91,11 +99,11 @@ const analyzeSeverity = (type, description) => {
     const typeKey = (type || '').toLowerCase();
 
     const criticalKeywords = [
-        'fire', 'gun', 'shooter', 'cardiac', 'stroke', 'explosion', 
+        'fire', 'gun', 'shooter', 'cardiac', 'stroke', 'explosion',
         'trapped', 'unconscious', 'collapse', 'not breathing', 'dying',
         'multiple casualties', 'building collapse', 'gas leak', 'bomb'
     ];
-    
+
     const highKeywords = [
         'accident', 'crash', 'blood', 'injury', 'broken', 'breathing',
         'severe', 'felony', 'assault', 'robbery', 'drowning', 'choking',
@@ -146,7 +154,7 @@ const analyzeSeverity = (type, description) => {
 };
 
 app.get('/', (req, res) => {
-    res.status(200).json({ 
+    res.status(200).json({
         status: 'CRISIS.ONE Backend Running',
         version: '1.0.0',
         mode: db ? 'live' : 'mock',
@@ -161,7 +169,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/health', (req, res) => {
-    res.status(200).json({ 
+    res.status(200).json({
         status: 'healthy',
         timestamp: new Date().toISOString(),
         firebase: db ? 'connected' : 'disconnected'
@@ -226,15 +234,65 @@ app.post('/update-status', authenticateToken, async (req, res) => {
             console.log(`[MOCK] Updated incident ${incidentId} to ${status}`);
         }
 
-        res.status(200).json({ 
-            success: true, 
-            incidentId, 
+        res.status(200).json({
+            success: true,
+            incidentId,
             status,
-            updatedBy: req.user?.uid 
+            updatedBy: req.user?.uid
         });
     } catch (error) {
         console.error('Update failed:', error);
         res.status(500).json({ error: 'Update failed', details: error.message });
+    }
+});
+
+app.post('/incidents', authenticateToken, async (req, res) => {
+    try {
+        const { type, severity, description, latitude, longitude, address, contactPhone, priorityScore, aiSeverity } = req.body;
+
+        if (!type || !latitude || !longitude) {
+            return res.status(400).json({ error: 'Missing required fields: type, latitude, longitude' });
+        }
+
+        const newIncident = {
+            type,
+            severity: severity || 'medium',
+            description: description || '',
+            location: {
+                latitude,
+                longitude,
+                address: address || ''
+            },
+            contactPhone: contactPhone || '',
+            status: 'reported',
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdBy: req.user?.uid || 'anonymous',
+            priorityScore: priorityScore || 0,
+            aiSeverity: aiSeverity || severity || 'medium',
+            updates: []
+        };
+
+        let incidentId;
+
+        if (db) {
+            const docRef = await db.collection('incidents').add(newIncident);
+            incidentId = docRef.id;
+            console.log(`[NEW INCIDENT] ID: ${incidentId}, Type: ${type}, Severity: ${newIncident.severity}`);
+        } else {
+            incidentId = 'mock-incident-' + Date.now();
+            console.log(`[MOCK] Created incident ${incidentId}`);
+        }
+
+        res.status(201).json({
+            success: true,
+            id: incidentId,
+            ...newIncident,
+            createdAt: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('Create incident failed:', error);
+        res.status(500).json({ error: 'Failed to create incident', details: error.message });
     }
 });
 
@@ -248,7 +306,7 @@ app.post('/dispatch', authenticateToken, async (req, res) => {
 
         if (db) {
             const incidentRef = db.collection('incidents').doc(incidentId);
-            
+
             await incidentRef.update({
                 status: 'assigned',
                 assignedTo: resourceId,
@@ -278,6 +336,139 @@ app.post('/dispatch', authenticateToken, async (req, res) => {
     }
 });
 
+// RESTful endpoint for status updates (used by frontend incidentService)
+app.put('/incidents/:incidentId/status', authenticateToken, async (req, res) => {
+    try {
+        const { incidentId } = req.params;
+        const { status, userId } = req.body;
+
+        if (!status) {
+            return res.status(400).json({ error: 'status is required' });
+        }
+
+        const validStatuses = ['reported', 'assigned', 'in_progress', 'on_the_way', 'resolved', 'cancelled'];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ error: 'Invalid status value' });
+        }
+
+        if (db) {
+            const updateData = {
+                status: status,
+                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                updatedBy: userId || req.user?.uid || 'system'
+            };
+
+            if (status === 'resolved') {
+                updateData.resolvedAt = admin.firestore.FieldValue.serverTimestamp();
+                updateData.resolvedBy = userId || req.user?.uid;
+            }
+
+            await db.collection('incidents').doc(incidentId).update(updateData);
+            console.log(`[UPDATE] Incident ${incidentId} -> ${status}`);
+        }
+
+        res.status(200).json({
+            success: true,
+            incidentId,
+            status,
+            updatedBy: req.user?.uid
+        });
+    } catch (error) {
+        console.error('Update status failed:', error);
+        res.status(500).json({ error: 'Update failed', details: error.message });
+    }
+});
+
+// Assign volunteer to incident
+app.post('/incidents/:incidentId/volunteers', authenticateToken, async (req, res) => {
+    try {
+        const { incidentId } = req.params;
+        const { volunteerId } = req.body;
+
+        if (!volunteerId) {
+            return res.status(400).json({ error: 'volunteerId is required' });
+        }
+
+        if (db) {
+            await db.collection('incidents').doc(incidentId).update({
+                assignedVolunteers: admin.firestore.FieldValue.arrayUnion(volunteerId),
+                status: 'assigned',
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            console.log(`[VOLUNTEER] ${volunteerId} assigned to incident ${incidentId}`);
+        }
+
+        res.status(200).json({
+            success: true,
+            incidentId,
+            volunteerId
+        });
+    } catch (error) {
+        console.error('Assign volunteer failed:', error);
+        res.status(500).json({ error: 'Assignment failed', details: error.message });
+    }
+});
+
+// Remove volunteer from incident
+app.delete('/incidents/:incidentId/volunteers/:volunteerId', authenticateToken, async (req, res) => {
+    try {
+        const { incidentId, volunteerId } = req.params;
+
+        if (db) {
+            await db.collection('incidents').doc(incidentId).update({
+                assignedVolunteers: admin.firestore.FieldValue.arrayRemove(volunteerId),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            console.log(`[VOLUNTEER] ${volunteerId} removed from incident ${incidentId}`);
+        }
+
+        res.status(200).json({
+            success: true,
+            incidentId,
+            volunteerId
+        });
+    } catch (error) {
+        console.error('Remove volunteer failed:', error);
+        res.status(500).json({ error: 'Removal failed', details: error.message });
+    }
+});
+
+// Assign resource to incident
+app.post('/incidents/:incidentId/resources', authenticateToken, async (req, res) => {
+    try {
+        const { incidentId } = req.params;
+        const { resourceId, resourceType } = req.body;
+
+        if (!resourceId) {
+            return res.status(400).json({ error: 'resourceId is required' });
+        }
+
+        if (db) {
+            await db.collection('incidents').doc(incidentId).update({
+                status: 'assigned',
+                assignedResources: admin.firestore.FieldValue.arrayUnion({
+                    resourceId,
+                    resourceType: resourceType || 'unknown',
+                    assignedAt: new Date().toISOString(),
+                    assignedBy: req.user?.uid
+                }),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            console.log(`[RESOURCE] ${resourceId} assigned to incident ${incidentId}`);
+        }
+
+        res.status(200).json({
+            success: true,
+            incidentId,
+            resourceId,
+            resourceType
+        });
+    } catch (error) {
+        console.error('Assign resource failed:', error);
+        res.status(500).json({ error: 'Assignment failed', details: error.message });
+    }
+});
+
 app.get('/stats', optionalAuth, async (req, res) => {
     try {
         if (!db) {
@@ -292,7 +483,7 @@ app.get('/stats', optionalAuth, async (req, res) => {
         }
 
         const incidentsSnapshot = await db.collection('incidents').get();
-        
+
         let total = 0;
         let active = 0;
         let resolved = 0;
@@ -320,7 +511,7 @@ app.get('/stats', optionalAuth, async (req, res) => {
             }
         });
 
-        const avgResponseTime = resolvedCount > 0 
+        const avgResponseTime = resolvedCount > 0
             ? Math.round(totalResponseTime / resolvedCount / 60000)
             : 0;
 
@@ -359,7 +550,7 @@ app.post('/predict-resources', optionalAuth, async (req, res) => {
 
 function predictResources(type, severity, description, location) {
     const text = description.toLowerCase();
-    
+
     const prediction = {
         resources: [],
         estimatedResponseTime: 0,
@@ -605,7 +796,7 @@ app.post('/alert', authenticateToken, async (req, res) => {
 
 app.use((err, req, res, next) => {
     console.error('Unhandled error:', err);
-    res.status(500).json({ 
+    res.status(500).json({
         error: 'Internal server error',
         message: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
