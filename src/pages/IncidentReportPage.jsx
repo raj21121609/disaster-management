@@ -4,9 +4,7 @@ import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { Label } from '../components/ui/Label';
-import { Alert } from '../components/ui/Alert';
 import { Badge } from '../components/ui/Badge';
-import { Separator } from '../components/ui/Separator';
 import MapView from '../components/MapView';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../contexts/NotificationContext';
@@ -14,14 +12,17 @@ import { createIncident } from '../services/incidentService';
 import { queueIncident } from '../services/offlineIncidentStore';
 import { analyzeLocalSeverity } from '../services/localSeverityAI';
 import { cn } from '../lib/utils';
-// import './IncidentReportPage.css'; // REMOVED
 
-const IncidentReportPage = ({ onNavigate }) => {
+const IncidentReportPage = ({ onNavigate, initialData }) => {
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [locationLoading, setLocationLoading] = useState(true);
     const [locationError, setLocationError] = useState(null);
     const [submittedIncident, setSubmittedIncident] = useState(null);
+
+    // Vision Service State
+    const [visualAnalysis, setVisualAnalysis] = useState(null);
+    const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
 
     const [formData, setFormData] = useState({
         type: 'medical',
@@ -35,6 +36,17 @@ const IncidentReportPage = ({ onNavigate }) => {
 
     const { currentUser, getIdToken, isAuthenticated } = useAuth();
     const { addNotification } = useNotifications();
+
+    // Auto-Start from Quick SOS
+    useEffect(() => {
+        if (initialData?.autoStart && initialData?.file) {
+            setStep(2);
+            // Small timeout to allow render
+            setTimeout(() => {
+                processImage(initialData.file);
+            }, 100);
+        }
+    }, [initialData]);
 
     useEffect(() => {
         if (navigator.geolocation) {
@@ -75,6 +87,81 @@ const IncidentReportPage = ({ onNavigate }) => {
         }
     }, []);
 
+    const processImage = async (file) => {
+        setIsAnalyzingImage(true);
+        setVisualAnalysis(null);
+
+        try {
+            const formDataUpload = new FormData();
+            formDataUpload.append('image', file);
+
+            const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+            const response = await fetch(`${BACKEND_URL}/analyze-image`, {
+                method: 'POST',
+                body: formDataUpload
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setVisualAnalysis({
+                    label: data.visual_label,
+                    confidence: data.confidence,
+                    model: data.model
+                });
+
+                // Auto-Prediction Logic
+                const label = (data.visual_label || '').toLowerCase();
+                let type = 'other';
+                let severity = 'medium';
+
+                // Type Mapping
+                if (label.includes('fire') || label.includes('smoke') || label.includes('explosion') || label.includes('flame')) type = 'fire';
+                else if (label.includes('med') || label.includes('blood') || label.includes('injury') || label.includes('person') || label.includes('body')) type = 'medical';
+                else if (label.includes('crash') || label.includes('car') || label.includes('accident') || label.includes('wreck')) type = 'accident';
+                else if (label.includes('flood') || label.includes('water')) type = 'flood';
+                else if (label.includes('gun') || label.includes('police') || label.includes('weapon')) type = 'police';
+
+                // Severity Mapping
+                if (data.confidence > 0.75) {
+                    // Visual confirmation increases base severity
+                    if (['fire', 'medical', 'police'].includes(type)) severity = 'high';
+                    if (label.includes('severe') || label.includes('massive') || label.includes('critical')) severity = 'critical';
+                }
+
+                // Generative Description
+                let generatedDesc = `Visual Analysis: Positive identification of ${data.visual_label}.`;
+                if (type === 'fire') generatedDesc = `EMERGENCY: Visual confirmation of active fire/smoke. Potential structure threat.`;
+                else if (type === 'medical') generatedDesc = `MEDICAL: Visual indicators of human casualty or medical emergency.`;
+                else if (type === 'accident') generatedDesc = `TRAFFIC: Vehicle collision/wreckage observed. Check for entrapment.`;
+                else if (type === 'flood') generatedDesc = `ENV HAZARD: Flooding conditions detected. Water rescue assets may be required.`;
+                else if (type === 'police') generatedDesc = `SECURITY: Law enforcement incident. Potential weapon or hostile activity.`;
+
+                setFormData(prev => ({
+                    ...prev,
+                    type,
+                    severity,
+                    // Only auto-fill description if empty to not overwrite user input
+                    description: generatedDesc // Force update for Quick SOS flow or new image
+                }));
+
+                addNotification({ type: 'success', severity: 'low', message: `Analyzed: ${type.toUpperCase()} (${severity.toUpperCase()})` });
+
+            } else {
+                console.warn('Image analysis failed');
+                addNotification({ type: 'error', severity: 'low', message: 'Vision analysis unavailable' });
+            }
+        } catch (error) {
+            console.error("Image analysis error", error);
+        } finally {
+            setIsAnalyzingImage(false);
+        }
+    };
+
+    const handleImageUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) processImage(file);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!formData.latitude || !formData.longitude) return;
@@ -102,23 +189,29 @@ const IncidentReportPage = ({ onNavigate }) => {
                 const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
                 let aiSeverity = formData.severity;
                 let priorityScore = 50;
+                let llmExplanation = '';
 
                 try {
                     const response = await fetch(`${BACKEND_URL}/analyze-incident`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
-                        body: JSON.stringify({ type: formData.type, description: formData.description })
+                        body: JSON.stringify({
+                            type: formData.type,
+                            description: formData.description,
+                            visualAnalysis: visualAnalysis
+                        })
                     });
                     if (response.ok) {
                         const analysis = await response.json();
                         aiSeverity = analysis.severity;
                         priorityScore = analysis.priorityScore;
+                        llmExplanation = analysis.llmExplanation;
                     }
                 } catch (err) { console.warn('Backend unavailable', err); }
 
-                const incidentData = { ...formData, severity: aiSeverity, priorityScore };
+                const incidentData = { ...formData, severity: aiSeverity, priorityScore, llmExplanation };
                 const incident = await createIncident(incidentData, userId, idToken);
-                setSubmittedIncident({ ...incident, aiSeverity, priorityScore });
+                setSubmittedIncident({ ...incident, aiSeverity, priorityScore, llmExplanation });
             }
             setStep(3);
             setTimeout(() => onNavigate('dashboard'), 6000);
@@ -232,7 +325,7 @@ const IncidentReportPage = ({ onNavigate }) => {
                                         <Navigation className="mr-2 h-4 w-4" /> REFRESH
                                     </Button>
                                     <Button
-                                        variant="critical" // Proceed is critical action here
+                                        variant="critical"
                                         onClick={() => setStep(2)}
                                         disabled={!formData.latitude || locationLoading}
                                     >
@@ -269,6 +362,42 @@ const IncidentReportPage = ({ onNavigate }) => {
                                                 </span>
                                             </button>
                                         ))}
+                                    </div>
+                                </div>
+
+                                {/* Image Analysis Input */}
+                                <div className="space-y-3">
+                                    <Label>Visual Intel (Optional)</Label>
+                                    <div className="flex flex-col gap-3">
+                                        <div className="relative">
+                                            <Input
+                                                type="file"
+                                                accept="image/*"
+                                                capture="environment"
+                                                onChange={handleImageUpload}
+                                                className="bg-slate-950/50 border-slate-700 file:bg-slate-800 file:text-slate-200 file:border-0 file:rounded-md file:mr-4 file:px-4 file:py-1 hover:file:bg-slate-700"
+                                            />
+                                            {isAnalyzingImage && (
+                                                <div className="absolute right-3 top-2.5">
+                                                    <Loader className="h-5 w-5 animate-spin text-blue-500" />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {visualAnalysis && (
+                                            <div className="flex items-center gap-3 rounded-md bg-slate-900/80 p-3 border border-slate-800 animate-in fade-in slide-in-from-top-2">
+                                                <Camera className="text-purple-400 h-5 w-5" />
+                                                <div className="flex-1">
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="text-sm font-bold text-white uppercase">{visualAnalysis.label}</span>
+                                                        <Badge variant={visualAnalysis.confidence > 0.8 ? 'default' : 'secondary'} className="text-[10px]">
+                                                            {Math.round(visualAnalysis.confidence * 100)}% CONFIDENCE
+                                                        </Badge>
+                                                    </div>
+                                                    <p className="text-[10px] text-slate-500 font-mono">Analyzed by {visualAnalysis.model || 'AI Vision'}</p>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -362,6 +491,15 @@ const IncidentReportPage = ({ onNavigate }) => {
                                                 <span className="text-slate-500">LOC</span>
                                                 <span className="truncate pl-4 text-right text-slate-300">{formData.address?.substring(0, 20)}...</span>
                                             </div>
+
+                                            {submittedIncident.llmExplanation && (
+                                                <div className="mt-4 border-t border-slate-800 pt-3">
+                                                    <p className="mb-1 text-xs font-bold text-blue-400 uppercase">Mission Capabilities</p>
+                                                    <p className="text-xs text-slate-400 text-left leading-relaxed">
+                                                        {submittedIncident.llmExplanation}
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 )}

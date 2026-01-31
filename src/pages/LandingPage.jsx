@@ -1,5 +1,5 @@
-import React from 'react';
-import { AlertTriangle, MapPin, Users, Shield, Clock, Phone, Activity, ChevronRight } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { AlertTriangle, MapPin, Users, Shield, Clock, Phone, Activity, ChevronRight, Camera, Loader, CheckCircle, X } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -7,8 +7,156 @@ import { cn } from '../lib/utils';
 // import './LandingPage.css'; // REMOVED
 
 const LandingPage = ({ onNavigate }) => {
+    const fileInputRef = useRef(null);
+    const [analyzing, setAnalyzing] = useState(false);
+    const [analysisResult, setAnalysisResult] = useState(null);
+    const [fileState, setFileState] = useState(null);
+
+    const handleQuickSOS = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setFileState(file);
+        setAnalyzing(true);
+        setAnalysisResult(null);
+
+        try {
+            const formData = new FormData();
+            formData.append('image', file);
+
+            const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+            const response = await fetch(`${BACKEND_URL}/analyze-image`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+
+                // Logic replication from IncidentReportPage
+                const label = (data.visual_label || '').toLowerCase();
+                let type = 'other';
+                let severity = 'medium';
+
+                if (label.includes('fire') || label.includes('smoke') || label.includes('explosion')) type = 'fire';
+                else if (label.includes('med') || label.includes('blood') || label.includes('injury')) type = 'medical';
+                else if (label.includes('crash') || label.includes('car') || label.includes('accident')) type = 'accident';
+                else if (label.includes('flood') || label.includes('water')) type = 'flood';
+                else if (label.includes('gun') || label.includes('police')) type = 'police';
+
+                if (data.confidence > 0.75) {
+                    if (['fire', 'medical', 'police'].includes(type)) severity = 'high';
+                    if (label.includes('severe') || label.includes('massive')) severity = 'critical';
+                }
+
+                let generatedDesc = `Visual Analysis: Positive identification of ${data.visual_label}.`;
+                if (type === 'fire') generatedDesc = `EMERGENCY: Visual confirmation of active fire/smoke. Potential structure threat.`;
+                else if (type === 'medical') generatedDesc = `MEDICAL: Visual indicators of human casualty or medical emergency.`;
+                else if (type === 'accident') generatedDesc = `TRAFFIC: Vehicle collision/wreckage observed. Check for entrapment.`;
+                else if (type === 'flood') generatedDesc = `ENV HAZARD: Flooding conditions detected. Water rescue assets may be required.`;
+                else if (type === 'police') generatedDesc = `SECURITY: Law enforcement incident. Potential weapon or hostile activity.`;
+
+                setAnalysisResult({
+                    visualData: { label: data.visual_label, confidence: data.confidence, model: data.model },
+                    type,
+                    severity,
+                    description: generatedDesc
+                });
+            } else {
+                console.error("Analysis failed");
+                // Fallback to manual
+                onNavigate('report', { file, autoStart: true });
+            }
+        } catch (error) {
+            console.error("Error analyzing:", error);
+            // Fallback
+            onNavigate('report', { file, autoStart: true });
+        } finally {
+            setAnalyzing(false);
+        }
+    };
+
+    const confirmQuickSOS = () => {
+        if (analysisResult && fileState) {
+            onNavigate('report', {
+                file: fileState,
+                // Pass pre-calculated data to override re-analysis if we wanted, 
+                // but IncidentReportPage is set up to re-analyze or we can pass data directly.
+                // We'll pass 'preAnalyzedData' to skip re-fetching.
+                preAnalyzedData: analysisResult,
+                autoStart: true
+            });
+        }
+    };
+
     return (
-        <div className="flex min-h-screen flex-col bg-slate-950 font-sans text-slate-50 selection:bg-red-900/50">
+        <div className="flex min-h-screen flex-col bg-slate-950 font-sans text-slate-50 relative selection:bg-red-900/50">
+
+            {/* Analysis Modal Overlay */}
+            {(analyzing || analysisResult) && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+                    <Card className="w-full max-w-md border-slate-700 bg-slate-900/95 shadow-2xl">
+                        <div className="p-6 text-center space-y-6">
+                            {analyzing ? (
+                                <>
+                                    <div className="relative mx-auto h-20 w-20">
+                                        <div className="absolute inset-0 animate-ping rounded-full bg-blue-500/20"></div>
+                                        <div className="flex h-full w-full items-center justify-center rounded-full border-2 border-blue-500 bg-slate-950">
+                                            <Loader className="h-8 w-8 animate-spin text-blue-400" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold text-white">ANALYZING INTEL...</h3>
+                                        <p className="text-slate-400">Processing visual data via Neural Network</p>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="flex justify-center">
+                                        <Badge variant={analysisResult.severity} className="text-lg px-4 py-1.5 uppercase tracking-widest">
+                                            {analysisResult.type} DETECTED
+                                        </Badge>
+                                    </div>
+
+                                    <div className="rounded-lg border border-slate-800 bg-slate-950/50 p-4 text-left">
+                                        <p className="mb-2 text-xs font-bold text-slate-500 uppercase">SITUATION REPORT</p>
+                                        <p className="text-sm text-slate-200 leading-relaxed font-mono">
+                                            {analysisResult.description}
+                                        </p>
+                                    </div>
+
+                                    <div className="flex gap-3">
+                                        <Button
+                                            variant="ghost"
+                                            onClick={() => { setAnalysisResult(null); setFileState(null); }}
+                                            className="flex-1"
+                                        >
+                                            CANCEL
+                                        </Button>
+                                        <Button
+                                            variant="critical"
+                                            onClick={confirmQuickSOS}
+                                            className="flex-1"
+                                        >
+                                            CONFIRM & REPORT <ChevronRight className="ml-2 h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </Card>
+                </div>
+            )}
+
+            {/* Hidden Input for Quick SOS */}
+            <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*"
+                capture="environment"
+                onChange={handleQuickSOS}
+            />
 
             {/* Hero Section */}
             <section className="relative overflow-hidden pt-24 pb-16 md:pt-32 md:pb-24 lg:pt-40 lg:pb-32">
@@ -41,6 +189,18 @@ const LandingPage = ({ onNavigate }) => {
                                 <Phone className="mr-2 h-5 w-5" />
                                 INITIATE SOS REPORT
                             </Button>
+
+                            {/* Quick SOS Button */}
+                            <Button
+                                variant="outline"
+                                size="lg"
+                                className="w-full sm:w-auto text-lg h-14 border-blue-500/50 bg-blue-900/10 text-blue-400 hover:bg-blue-900/30 hover:border-blue-400"
+                                onClick={() => fileInputRef.current.click()}
+                            >
+                                <Camera className="mr-2 h-5 w-5" />
+                                QUICK SOS (PHOTO)
+                            </Button>
+
                             <Button
                                 variant="outline"
                                 size="lg"

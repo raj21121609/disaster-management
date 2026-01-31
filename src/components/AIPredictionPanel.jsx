@@ -40,7 +40,7 @@ const AIPredictionPanel = ({ incident, onClose }) => {
     if (!incident) return null;
 
     return (
-        <Card className="border-slate-700 bg-slate-900/95 backdrop-blur shadow-xl">
+        <Card className="border-slate-700 bg-slate-900/95 backdrop-blur shadow-xl animate-in slide-in-from-right-8 fade-in duration-500 ease-in-out">
             <CardHeader className="pb-3 border-b border-slate-800 flex flex-row items-center justify-between">
                 <div className="flex items-center gap-2">
                     <Brain className="text-blue-500 h-5 w-5" />
@@ -51,7 +51,7 @@ const AIPredictionPanel = ({ incident, onClose }) => {
                 </Badge>
             </CardHeader>
 
-            <CardContent className="p-4 space-y-4">
+            <CardContent className="p-4 space-y-4 max-h-[60vh] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700">
                 {/* Context Badge */}
                 <div className="flex items-center justify-between text-xs">
                     <span className="text-slate-400">Analysis Target:</span>
@@ -73,7 +73,7 @@ const AIPredictionPanel = ({ incident, onClose }) => {
                         <Button variant="outline" size="sm" onClick={loadPrediction}>Retry Analysis</Button>
                     </div>
                 ) : prediction && (
-                    <div className="space-y-4 animate-in fade-in duration-300">
+                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-in-out">
 
                         {/* Risk Assessment */}
                         <div className={cn(

@@ -47,22 +47,29 @@ const AppContent = () => {
     }
   }, [isAuthenticated, userRole, currentPage]);
 
+  const [pageContext, setPageContext] = useState(null);
+
+  const handleNavigate = (page, data = null) => {
+    setCurrentPage(page);
+    setPageContext(data);
+  };
+
   const renderPage = () => {
     switch (currentPage) {
       case 'landing':
-        return <LandingPage onNavigate={setCurrentPage} />;
+        return <LandingPage onNavigate={handleNavigate} />;
       case 'dashboard':
         return <DashboardPage />;
       case 'report':
-        return <IncidentReportPage onNavigate={setCurrentPage} />;
+        return <IncidentReportPage onNavigate={handleNavigate} initialData={pageContext} />;
       case 'auth':
-        return <AuthPage onNavigate={setCurrentPage} />;
+        return <AuthPage onNavigate={handleNavigate} />;
       case 'volunteer':
         return <VolunteerDashboard />;
       case 'agency':
         return <AgencyDashboard />;
       default:
-        return <LandingPage onNavigate={setCurrentPage} />;
+        return <LandingPage onNavigate={handleNavigate} />;
     }
   };
 
