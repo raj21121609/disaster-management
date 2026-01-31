@@ -20,7 +20,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
+    "groq-sdk": "^0.16.0",
     "axios": "^1.13.4",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",

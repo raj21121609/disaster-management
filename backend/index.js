@@ -5,7 +5,8 @@ const dotenv = require('dotenv');
 const multer = require('multer');
 const axios = require('axios');
 const FormData = require('form-data');
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const Groq = require("groq-sdk");
+const satelliteService = require('./services/satelliteAnalysisService');
 
 dotenv.config();
 
@@ -19,8 +20,8 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Initialize Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "dummy_key");
+// Initialize Groq
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || "" });
 
 let db = null;
 let auth = null;
@@ -313,36 +314,50 @@ function decisionEngine(visualAnalysis, textDescription, type) {
 }
 
 /* ============================
-   4️⃣ GEMINI EXPLAINABILITY
+   4️⃣ GROQ EXPLAINABILITY (llama-3.3-70b-versatile)
 ============================ */
-async function explainWithGemini(decision) {
-    if (!process.env.GEMINI_API_KEY) return "LLM explanation disabled (No API Key)";
+async function explainWithGroq(decision) {
+    if (!process.env.GROQ_API_KEY) return "LLM explanation disabled (No API Key)";
 
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const prompt = `You are an emergency response decision-support assistant for CRISIS.ONE.
 
-        const prompt = `
-You are an emergency response decision-support assistant.
+**CRITICAL: EXPLANATION ONLY MODE**
+The severity level (${decision.severity}) and resource allocation have ALREADY been determined by a deterministic rule-based engine. You MUST NOT suggest changes to severity or resources. Your role is ONLY to explain the reasoning.
 
-Severity and resources are already decided by a deterministic system. Do NOT change them.
+Incident Type: ${decision.incidentType}
+Severity: ${decision.severity} (Priority Score: ${decision.priorityScore})
+Visual Intelligence: ${decision.visualAnalysis ? decision.visualAnalysis.label : 'None'}
 
-Incident type: ${decision.incidentType}
-Severity: ${decision.severity} (Score: ${decision.priorityScore})
-Visual Intel: ${decision.visualAnalysis ? decision.visualAnalysis.label : 'None'}
 Resources Deployed:
 ${JSON.stringify(decision.resources, null, 2)}
 
-Explain:
-1. Why these resources are required based on the severity and type.
-2. What risks may escalate if delayed (Risk Assessment).
-3. Safety precautions for responders for this specific incident type.
-Keep it concise, tactical, and authoritative. Max 3-4 sentences per point.
-`;
+Provide a concise, tactical explanation covering:
+1. **Resource Justification**: Why these specific resources are appropriate for this incident type and severity.
+2. **Risk Assessment**: What risks may escalate if response is delayed.
+3. **Responder Safety**: Key safety precautions for first responders on this specific incident.
 
-        const result = await model.generateContent(prompt);
-        return result.response.text();
+Keep each point to 2-3 sentences. Be authoritative and professional.`;
+
+        const chatCompletion = await groq.chat.completions.create({
+            messages: [
+                {
+                    role: "system",
+                    content: "You are a tactical emergency response advisor. Provide concise, actionable explanations. Never override or question the severity/resource decisions - they are final."
+                },
+                {
+                    role: "user",
+                    content: prompt
+                }
+            ],
+            model: "llama-3.3-70b-versatile",
+            temperature: 0.3,
+            max_tokens: 500,
+        });
+
+        return chatCompletion.choices[0]?.message?.content || "Explanation unavailable.";
     } catch (error) {
-        console.error("Gemini Error:", error.message);
+        console.error("Groq Error:", error.message);
         return "LLM Explanation unavailable at this time.";
     }
 }
@@ -402,7 +417,7 @@ app.post('/analyze-incident', optionalAuth, async (req, res) => {
 
         let explanation = "LLM unavailable";
         try {
-            explanation = await explainWithGemini(decision);
+            explanation = await explainWithGroq(decision);
         } catch (e) {
             console.error("Gemini error:", e.message);
         }
@@ -485,6 +500,28 @@ app.post('/alert', authenticateToken, async (req, res) => {
     const { incidentId, message, severity } = req.body;
     if (db) await db.collection('alerts').add({ incidentId, message, severity, createdAt: admin.firestore.FieldValue.serverTimestamp() });
     res.json({ success: true });
+});
+
+/* ============================
+   9️⃣ SATELLITE INTELLIGENCE
+============================ */
+
+app.post('/api/satellite/analyze', authenticateToken, async (req, res) => {
+    try {
+        const { zone, disasterType, affectedAreaKm2, roadAccess, populationDensity } = req.body;
+        const analysis = await satelliteService.analyzeDamage({
+            zone, disasterType, affectedAreaKm2, roadAccess, populationDensity
+        });
+        res.json(analysis);
+    } catch (error) {
+        res.status(500).json({ error: 'Satellite Analysis Failed' });
+    }
+});
+
+app.get('/api/satellite/image/:type', authenticateToken, (req, res) => {
+    const { type } = req.params;
+    const imageData = satelliteService.getSatelliteImage(type);
+    res.json(imageData);
 });
 
 app.listen(PORT, () => {

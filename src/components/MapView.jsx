@@ -101,7 +101,8 @@ const MapView = ({
     selectedIncidentId = null,
     overloadZones = [],
     height = '100%',
-    className
+    className,
+    children // NEW: Allow child components (overlays)
 }) => {
     const [mapReady, setMapReady] = useState(false);
 
@@ -133,6 +134,9 @@ const MapView = ({
                     selectedIncidentId={selectedIncidentId}
                     incidents={incidents}
                 />
+
+                {/* Allow overlays from parent components */}
+                {children}
 
                 {showUserLocation && userLocation && (
                     <>

@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "vision": "cd vision-service && uvicorn main:app --port 9000 --reload"
   },
   "dependencies": {
     "@googlemaps/js-api-loader": "^1.16.6",
